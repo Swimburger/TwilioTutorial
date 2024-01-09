@@ -1,24 +1,23 @@
 import "dotenv/config";
 import express from "express";
-import { AssemblyAI } from "assemblyai";
 import { WebSocketServer } from "ws";
 import { createServer } from "http";
+import { RealtimeService } from "assemblyai";
 
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
-const aaiClient = new AssemblyAI({ apiKey: process.env.ASSEMBLYAI_API_KEY });
-
 wss.on("connection", async (ws) => {
   console.info("New connection");
-  const transcriber = aaiClient.realtime.createService({
+  const transcriber = new RealtimeService({
+    apiKey: process.env.ASSEMBLYAI_API_KEY,
     encoding: "pcm_mulaw",
-    sample_rate: 8000
+    sampleRate: 8000
   })
   const connectionPromise = transcriber.connect();
 
-  transcriber.on("transcript.partial", ({ text, audio_start }) => {
+  transcriber.on("transcript.partial", ({ text }) => {
     if (!text) return;
     console.log(text);
   });
@@ -64,12 +63,12 @@ app.post("/", async (req, res) => {
   res.send(
     `<Response>
        <Start>
-         <Stream url='wss://${req.headers.host}' />
+         <Stream url="wss://${req.headers.host}" />
        </Start>
        <Say>
-         Start speaking to see your audio transcribed in the console
+         Start speaking to see your audio transcribed in the console.
        </Say>
-       <Pause length='60' />
+       <Pause length="60" />
      </Response>`
   );
 });
